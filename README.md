@@ -1,2 +1,2 @@
 # Mini Madness
-A platfromer game
+A platformer game
