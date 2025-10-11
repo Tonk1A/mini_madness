@@ -1,2 +1,2 @@
-# Mni madness
+# Mini Madness
 A platfromer game
