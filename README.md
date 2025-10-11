@@ -1,2 +1,2 @@
-# endless_castle
-dungeon crawling type game
+# Mni madness
+A platfromer game
