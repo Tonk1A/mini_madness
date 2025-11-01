@@ -12,7 +12,7 @@ WIDTH = TILE_SIZE * ROWS
 HEIGHT = TILE_SIZE * COLS
 TITLE = "mini madness"
 
-Current_Stage = 1
+Current_Stage = 2
 
 DATA_PATH = "data"
 
@@ -21,6 +21,7 @@ Bg_List = {}
 Door_List = {}
 FakePart_List = defaultdict(list)
 Spike_List = defaultdict(list)
+Spring_List = defaultdict(list)
 
 for filename in os.listdir(DATA_PATH):
     if not filename.endswith(".csv"):
@@ -43,24 +44,31 @@ for filename in os.listdir(DATA_PATH):
         FakePart_List[stage_num].append(full_path)
     elif "._Spike" in filename:
         Spike_List[stage_num].append(full_path)
-
+    elif "._Spring" in filename:
+        Spring_List[stage_num].append(full_path)
+        
 FakePart_List = dict(FakePart_List)
 Spike_List = dict(Spike_List)
+Spring_List = dict(Spring_List)
 
 def load_stage(stage_num):
-    global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage
+    global platforms, backgrounds, doors, fake_parts, spike_parts, spring_parts, Current_Stage
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
     doors = build(Door_List[stage_num], TILE_SIZE)
     fake_parts = []
     spike_parts = []
+    spring_parts = []
     if stage_num in FakePart_List:
         for part_file in FakePart_List[stage_num]:
             fake_parts.extend(build(part_file, TILE_SIZE))
     if stage_num in Spike_List:
         for part_file in Spike_List[stage_num]:
             spike_parts.extend(build(part_file, TILE_SIZE))
+    if stage_num in Spring_List:
+        for part_file in Spring_List[stage_num]:
+            spring_parts.extend(build(part_file, TILE_SIZE))
     player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
 
 # --- sprite ---
@@ -96,6 +104,8 @@ def draw():
         fake.draw()
     for spike in spike_parts:
         spike.draw()
+    for spring in spring_parts:
+        spring.draw()
     player.draw()
 
 # --- update ---
@@ -163,15 +173,16 @@ def update():
             spike_parts[0].x = 400
             spike_parts[1].x = 432
     if Current_Stage == 2:
-        if player.x >= 128:
-            for i in range(12):
-                    fake_parts[i].y = 1000
-        if player.x >= 352:
-            for i in range(12,24):
-                    fake_parts[i].y += 10
-        if player.x >= 576:
-            for i in range(24,36):
-                    fake_parts[i].y += 10
+        pass
+        # if player.x >= 128:
+        #     for i in range(12):
+        #             fake_parts[i].y = 1000
+        # if player.x >= 352:
+        #     for i in range(12,24):
+        #             fake_parts[i].y += 10
+        # if player.x >= 576:
+        #     for i in range(24,36):
+        #             fake_parts[i].y += 10
 
 # --- key events ---
 def on_key_down(key):
