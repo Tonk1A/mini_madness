@@ -1,4 +1,7 @@
 import pgzrun
+import os
+import re
+from collections import defaultdict
 from platformer import *
 
 TILE_SIZE = 32
@@ -11,46 +14,67 @@ TITLE = "mini madness"
 
 Current_Stage = 1
 
-Stage_List = {
-    1: "Stage_01._Platformer.csv",
-    2: "Stage_02._Platformer.csv"
-}
-Bg_List = {
-    1: "Stage_01._Bg.csv",
-    2: "Stage_02._Bg.csv"
-}
-Door_List = {
-    1: "Stage_01._Door.csv",
-    2: "Stage_02._Door.csv"
-}
+DATA_PATH = "data"
 
-# load defualt
+Stage_List = {}
+Bg_List = {}
+Door_List = {}
+FakePart_List = defaultdict(list)
+
+for filename in os.listdir(DATA_PATH):
+    if not filename.endswith(".csv"):
+        continue
+
+    match = re.search(r"Stage_(\d+)", filename)
+    if not match:
+        continue
+    stage_num = int(match.group(1))
+
+    full_path = os.path.join(DATA_PATH, filename)
+
+    if "._Platformer" in filename:
+        Stage_List[stage_num] = full_path
+    elif "._Bg" in filename:
+        Bg_List[stage_num] = full_path
+    elif "._Door" in filename:
+        Door_List[stage_num] = full_path
+    elif "._FakePart" in filename:
+        FakePart_List[stage_num].append(full_path)
+
+FakePart_List = dict(FakePart_List)
+
 def load_stage(stage_num):
-    global platforms, backgrounds, doors, Current_Stage
+    global platforms, backgrounds, doors, fake_parts, Current_Stage
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
     doors = build(Door_List[stage_num], TILE_SIZE)
-    player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.3)
+    fake_parts = []
+    if stage_num in FakePart_List:
+        for part_file in FakePart_List[stage_num]:
+            fake_parts.extend(build(part_file, TILE_SIZE))
+    player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
 
-# sprite
+# --- sprite ---
 color_key = (0, 0, 0)
 knight_stand = Sprite("hero-idle-sheet.png", 24, 24, 0, 2, 4, color_key)
 knight_walk = Sprite("hero-walk-sheet.png", 24, 24, 0, 6, 12, color_key)
 
-# player Actor
+# --- player Actor ---
 player = SpriteActor(knight_stand)
-player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.3)
-player.velocity_x = 3
+player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+player.velocity_x = 5
 player.velocity_y = 0
 player.jumping = False
+player.alive = True
 player.scale = 2
 gravity = 1
 jump_velocity = -12
 
-# โหลด Current Stage
+# --- โหลด Current Stage ---
 load_stage(Current_Stage)
 
+# --- draw ---
 def draw():
     screen.clear()
     screen.fill("Black")
@@ -60,11 +84,15 @@ def draw():
         platform.draw()
     for door in doors:
         door.draw()
+    for fake in fake_parts:
+        fake.draw()
     player.draw()
 
+# --- update ---
 def update():
     global Current_Stage
-    # การเคลื่อนไหว
+
+    # การเคลื่อนไหวซ้าย-ขวา
     if keyboard.A and player.midleft[0] > 0:
         player.x -= player.velocity_x
         player.sprite = knight_walk
@@ -72,7 +100,6 @@ def update():
         if player.collidelist(platforms) != -1:
             obj = platforms[player.collidelist(platforms)]
             player.x = obj.x + (obj.width / 2 + player.width / 2)
-
     elif keyboard.D and player.midright[0] < WIDTH:
         player.x += player.velocity_x
         player.sprite = knight_walk
@@ -96,8 +123,10 @@ def update():
         player.velocity_y = 0
 
     # ตกขอบ
-    if player.y >= 650:
-        player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.3)
+    if player.y >= HEIGHT:
+        player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+        player.alive = False
+        load_stage(Current_Stage)
 
     # เปลี่ยนด่าน
     if player.collidelist(doors) != -1:
@@ -105,15 +134,20 @@ def update():
         if next_stage in Stage_List:
             load_stage(next_stage)
         else:
-            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.3)
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+            
+    if player.x >= 185:
+        for i in range(15):
+            fake_parts[i].y += 10
 
+# --- key events ---
 def on_key_down(key):
     if key == keys.SPACE and not player.jumping:
         player.velocity_y = jump_velocity
         player.jumping = True
 
 def on_key_up(key):
-    if (key == keys.A or key == keys.D):
+    if key in (keys.A, keys.D):
         player.sprite = knight_stand
 
 pgzrun.go()
