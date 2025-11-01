@@ -86,6 +86,7 @@ player.alive = True
 player.scale = 1.5
 gravity = 1
 jump_velocity = -14
+spring_velocity = -20
 
 # --- โหลด Current Stage ---
 load_stage(Current_Stage)
@@ -147,6 +148,10 @@ def update():
         player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
         load_stage(Current_Stage)
 
+    # ชนspring
+    if player.collidelist(spring_parts) != -1:
+        player.velocity_y = spring_velocity
+
     # ตกขอบ
     if player.y >= HEIGHT:
         player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
@@ -173,16 +178,9 @@ def update():
             spike_parts[0].x = 400
             spike_parts[1].x = 432
     if Current_Stage == 2:
-        pass
-        # if player.x >= 128:
-        #     for i in range(12):
-        #             fake_parts[i].y = 1000
-        # if player.x >= 352:
-        #     for i in range(12,24):
-        #             fake_parts[i].y += 10
-        # if player.x >= 576:
-        #     for i in range(24,36):
-        #             fake_parts[i].y += 10
+         if player.x >= 384:
+            for i in range(3,6):
+                spike_parts[i].x = 1000
 
 # --- key events ---
 def on_key_down(key):
