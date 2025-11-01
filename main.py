@@ -20,6 +20,7 @@ Stage_List = {}
 Bg_List = {}
 Door_List = {}
 FakePart_List = defaultdict(list)
+Spike_List = defaultdict(list)
 
 for filename in os.listdir(DATA_PATH):
     if not filename.endswith(".csv"):
@@ -40,19 +41,26 @@ for filename in os.listdir(DATA_PATH):
         Door_List[stage_num] = full_path
     elif "._FakePart" in filename:
         FakePart_List[stage_num].append(full_path)
+    elif "._Spike" in filename:
+        Spike_List[stage_num].append(full_path)
 
 FakePart_List = dict(FakePart_List)
+Spike_List = dict(Spike_List)
 
 def load_stage(stage_num):
-    global platforms, backgrounds, doors, fake_parts, Current_Stage
+    global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
     doors = build(Door_List[stage_num], TILE_SIZE)
     fake_parts = []
+    spike_parts = []
     if stage_num in FakePart_List:
         for part_file in FakePart_List[stage_num]:
             fake_parts.extend(build(part_file, TILE_SIZE))
+    if stage_num in Spike_List:
+        for part_file in Spike_List[stage_num]:
+            spike_parts.extend(build(part_file, TILE_SIZE))
     player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
 
 # --- sprite ---
@@ -86,6 +94,8 @@ def draw():
         door.draw()
     for fake in fake_parts:
         fake.draw()
+    for spike in spike_parts:
+        spike.draw()
     player.draw()
 
 # --- update ---
