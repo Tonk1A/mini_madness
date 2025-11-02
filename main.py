@@ -3,6 +3,8 @@ import os
 import re
 from collections import defaultdict
 from platformer import *
+from pgzero.clock import schedule_unique
+from pgzero.clock import clock
 
 TILE_SIZE = 32
 ROWS = 30
@@ -50,6 +52,8 @@ for filename in os.listdir(DATA_PATH):
     elif "._SuperSpring" in filename:
         Super_spring_List[stage_num].append(full_path)
         
+spring_active = False
+
 FakePart_List = dict(FakePart_List)
 Spike_List = dict(Spike_List)
 Spring_List = dict(Spring_List)
@@ -71,8 +75,7 @@ def load_stage(stage_num):
     if stage_num in Spike_List:
         for part_file in Spike_List[stage_num]:
             spike_parts.extend(build(part_file, TILE_SIZE))
-    spring_parts.clear()
-    player.bottomleft = (0, 0)
+    player.bottomleft = (0,0)
 
 # --- sprite ---
 color_key = (0, 0, 0)
@@ -81,7 +84,7 @@ knight_walk = Sprite("hero-walk-sheet.png", 24, 24, 0, 6, 12, color_key)
 
 # --- player Actor ---
 player = SpriteActor(knight_stand)
-player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+player.bottomleft = (0, 0)
 player.velocity_x = 5
 player.velocity_y = 0
 player.jumping = False
@@ -127,12 +130,18 @@ def update():
         if player.collidelist(platforms) != -1:
             obj = platforms[player.collidelist(platforms)]
             player.x = obj.x + (obj.width / 2 + player.width / 2)
+        if player.collidelist(fake_parts) != -1:
+            obj = fake_parts[player.collidelist(fake_parts)]
+            player.x = obj.x + (obj.width / 2 + player.width / 2)
     elif keyboard.D and player.midright[0] < WIDTH:
         player.x += player.velocity_x
         player.sprite = knight_walk
         player.flip_h = False
         if player.collidelist(platforms) != -1:
             obj = platforms[player.collidelist(platforms)]
+            player.x = obj.x - (obj.width / 2 + player.width / 2)
+        if player.collidelist(fake_parts) != -1:
+            obj = fake_parts[player.collidelist(fake_parts)]
             player.x = obj.x - (obj.width / 2 + player.width / 2)
 
     # แรงโน้มถ่วง
@@ -197,12 +206,12 @@ def update():
             spike_parts[1].x = 432
     if Current_Stage == 2:
         if player.x >= 45 and player.y >= 480:
-            part_file = Spring_List[stage_num][0]
+            part_file = Spring_List[Current_Stage][0]
             spring_parts.extend(build(part_file, TILE_SIZE))
         if player.x >= 544 and player.y >= 480:
-            part_file = Spring_List[stage_num][1]
+            part_file = Spring_List[Current_Stage][1]
             spring_parts.extend(build(part_file, TILE_SIZE))
-            part_file = Super_spring_List[stage_num][0]
+            part_file = Super_spring_List[Current_Stage][0]
             super_spring_parts.extend(build(part_file, TILE_SIZE))
         if player.x >= 385:
             for i in range(3,6):
@@ -212,6 +221,23 @@ def update():
         if player.x >= 768:
             fake_parts[0].x = 720
             fake_parts[1].x = 880
+    if Current_Stage == 3:
+        part_file = Spring_List[Current_Stage][1]
+        spring_parts.extend(build(part_file, TILE_SIZE))
+        fake_parts[16].x = 1000
+        if player.y >= 352:
+            for i in range(8):
+                fake_parts[i].x = 80
+            part_file = Spring_List[Current_Stage][0]
+            spring_parts.extend(build(part_file, TILE_SIZE))
+        if player.x >= 336:
+            fake_parts[16].x = 368
+            part_file = Spring_List[Current_Stage][2]
+            spring_parts.extend(build(part_file, TILE_SIZE))
+        if player.x >= 544:
+            part_file = Spring_List[Current_Stage][3]
+            spring_parts.extend(build(part_file, TILE_SIZE))
+        
 
 # --- key events ---
 def on_key_down(key):
