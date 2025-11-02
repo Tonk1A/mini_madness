@@ -12,7 +12,7 @@ WIDTH = TILE_SIZE * ROWS
 HEIGHT = TILE_SIZE * COLS
 TITLE = "mini madness"
 
-Current_Stage = 2
+Current_Stage = 3
 
 DATA_PATH = "data"
 
@@ -72,7 +72,7 @@ def load_stage(stage_num):
         for part_file in Spike_List[stage_num]:
             spike_parts.extend(build(part_file, TILE_SIZE))
     spring_parts.clear()
-    player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+    player.bottomleft = (0, 0)
 
 # --- sprite ---
 color_key = (0, 0, 0)
@@ -182,7 +182,7 @@ def update():
         if next_stage in Stage_List:
             load_stage(next_stage)
         else:
-            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+            player.bottomleft = (0, 0)
             
     # กับดัก
     if Current_Stage == 1:
