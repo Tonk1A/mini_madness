@@ -22,6 +22,7 @@ Door_List = {}
 FakePart_List = defaultdict(list)
 Spike_List = defaultdict(list)
 Spring_List = defaultdict(list)
+Super_spring_List = defaultdict(list)
 
 for filename in os.listdir(DATA_PATH):
     if not filename.endswith(".csv"):
@@ -46,21 +47,24 @@ for filename in os.listdir(DATA_PATH):
         Spike_List[stage_num].append(full_path)
     elif "._Spring" in filename:
         Spring_List[stage_num].append(full_path)
+    elif "._SuperSpring" in filename:
+        Super_spring_List[stage_num].append(full_path)
         
 FakePart_List = dict(FakePart_List)
 Spike_List = dict(Spike_List)
 Spring_List = dict(Spring_List)
-
-spring_parts = []
+Super_spring_List = dict(Super_spring_List)
 
 def load_stage(stage_num):
-    global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage, spring_parts
+    global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage, spring_parts, super_spring_parts
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
     doors = build(Door_List[stage_num], TILE_SIZE)
     fake_parts = []
     spike_parts = []
+    spring_parts = []
+    super_spring_parts = []
     if stage_num in FakePart_List:
         for part_file in FakePart_List[stage_num]:
             fake_parts.extend(build(part_file, TILE_SIZE))
@@ -86,6 +90,7 @@ player.scale = 1.5
 gravity = 1
 jump_velocity = -14
 spring_velocity = -20
+Super_spring_velocity = -30
 
 # --- โหลด Current Stage ---
 load_stage(Current_Stage)
@@ -106,6 +111,8 @@ def draw():
         spike.draw()
     for spring in spring_parts:
         spring.draw()
+    for Super_spring in super_spring_parts:
+        Super_spring.draw()
     player.draw()
 
 # --- update ---
@@ -142,6 +149,16 @@ def update():
             player.y = obj.y + (obj.height / 2 + player.height / 2)
         player.velocity_y = 0
 
+    # ชนfake_part
+    if player.collidelist(fake_parts) != -1:
+        obj = fake_parts[player.collidelist(fake_parts)]
+        if player.velocity_y >= 0:
+            player.y = obj.y - (obj.height / 2 + player.height / 2)
+            player.jumping = False
+        else:
+            player.y = obj.y + (obj.height / 2 + player.height / 2)
+        player.velocity_y = 0
+
     # ชนspike
     if player.collidelist(spike_parts) != -1:
         player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
@@ -150,6 +167,8 @@ def update():
     # ชนspring
     if player.collidelist(spring_parts) != -1:
         player.velocity_y = spring_velocity
+    if player.collidelist(super_spring_parts) != -1:
+        player.velocity_y = Super_spring_velocity
 
     # ตกขอบ
     if player.y >= HEIGHT:
@@ -176,20 +195,23 @@ def update():
         if player.x >= 336:
             spike_parts[0].x = 400
             spike_parts[1].x = 432
-    if Current_Stage == 2: 
-        if player.x >= 45 and player.y >= 500:
-            if stage_num in Spring_List and len(Spring_List[stage_num]) > 0:
-                part_file = Spring_List[stage_num][0]
-                spring_parts.extend(build(part_file, TILE_SIZE))
-        if player.x >= 400 and player.y >= 500:
-            if stage_num in Spring_List and len(Spring_List[stage_num]) > 0:
-                part_file = Spring_List[stage_num][1]
-                spring_parts.extend(build(part_file, TILE_SIZE))
-                part_file = Spring_List[stage_num][2]
-                spring_parts.extend(build(part_file, TILE_SIZE))
+    if Current_Stage == 2:
+        if player.x >= 45 and player.y >= 480:
+            part_file = Spring_List[stage_num][0]
+            spring_parts.extend(build(part_file, TILE_SIZE))
+        if player.x >= 544 and player.y >= 480:
+            part_file = Spring_List[stage_num][1]
+            spring_parts.extend(build(part_file, TILE_SIZE))
+            part_file = Super_spring_List[stage_num][0]
+            super_spring_parts.extend(build(part_file, TILE_SIZE))
         if player.x >= 385:
             for i in range(3,6):
                 spike_parts[i].x = 1000
+        if player.x >= 672:
+            spike_parts[3].x = 688
+        if player.x >= 768:
+            fake_parts[0].x = 720
+            fake_parts[1].x = 880
 
 # --- key events ---
 def on_key_down(key):
