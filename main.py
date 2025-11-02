@@ -51,24 +51,23 @@ FakePart_List = dict(FakePart_List)
 Spike_List = dict(Spike_List)
 Spring_List = dict(Spring_List)
 
+spring_parts = []
+
 def load_stage(stage_num):
-    global platforms, backgrounds, doors, fake_parts, spike_parts, spring_parts, Current_Stage
+    global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage, spring_parts
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
     doors = build(Door_List[stage_num], TILE_SIZE)
     fake_parts = []
     spike_parts = []
-    spring_parts = []
     if stage_num in FakePart_List:
         for part_file in FakePart_List[stage_num]:
             fake_parts.extend(build(part_file, TILE_SIZE))
     if stage_num in Spike_List:
         for part_file in Spike_List[stage_num]:
             spike_parts.extend(build(part_file, TILE_SIZE))
-    if stage_num in Spring_List:
-        for part_file in Spring_List[stage_num]:
-            spring_parts.extend(build(part_file, TILE_SIZE))
+    spring_parts.clear()
     player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
 
 # --- sprite ---
@@ -111,7 +110,7 @@ def draw():
 
 # --- update ---
 def update():
-    global Current_Stage
+    global Current_Stage, spring_parts
 
     # การเคลื่อนไหวซ้าย-ขวา
     if keyboard.A and player.midleft[0] > 0:
@@ -177,8 +176,18 @@ def update():
         if player.x >= 336:
             spike_parts[0].x = 400
             spike_parts[1].x = 432
-    if Current_Stage == 2:
-         if player.x >= 384:
+    if Current_Stage == 2: 
+        if player.x >= 45 and player.y >= 500:
+            if stage_num in Spring_List and len(Spring_List[stage_num]) > 0:
+                part_file = Spring_List[stage_num][0]
+                spring_parts.extend(build(part_file, TILE_SIZE))
+        if player.x >= 400 and player.y >= 500:
+            if stage_num in Spring_List and len(Spring_List[stage_num]) > 0:
+                part_file = Spring_List[stage_num][1]
+                spring_parts.extend(build(part_file, TILE_SIZE))
+                part_file = Spring_List[stage_num][2]
+                spring_parts.extend(build(part_file, TILE_SIZE))
+        if player.x >= 385:
             for i in range(3,6):
                 spike_parts[i].x = 1000
 
