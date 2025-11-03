@@ -15,7 +15,7 @@ TITLE = "mini madness"
 
 DEATH_COUNT = 0
 
-Current_Stage = 1
+Current_Stage = 3
 
 DATA_PATH = "data"
 
