@@ -15,7 +15,7 @@ TITLE = "mini madness"
 
 DEATH_COUNT = 0
 
-Current_Stage = 3
+Current_Stage = 5
 
 DATA_PATH = "data"
 
@@ -60,7 +60,7 @@ Super_spring_List = dict(Super_spring_List)
 
 def load_stage(stage_num):
     global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage, spring_parts, super_spring_parts
-    global spring_timers, spring_active, remove_spring, removed_spring
+    global spring_timers, spring_active, remove_spring, removed_spring, spawned
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
@@ -72,19 +72,21 @@ def load_stage(stage_num):
     spring_timers = []
     spring_active = False
     removed_spring = False
-
+    spawned = False
     if Current_Stage == 3:
         part_file = Spring_List[Current_Stage][1]
         remove_spring = build(part_file, TILE_SIZE)
         spring_parts.extend(remove_spring)
-
     if stage_num in FakePart_List:
         for part_file in FakePart_List[stage_num]:
             fake_parts.extend(build(part_file, TILE_SIZE))
     if stage_num in Spike_List:
         for part_file in Spike_List[stage_num]:
             spike_parts.extend(build(part_file, TILE_SIZE))
-    player.bottomleft = (0,0)
+    if Current_Stage == 5:
+        player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
+    else:
+        player.bottomleft = (0, 0)
 
 # -- spawn spring
 def spawn_spring(file_path, lifetime=3):
@@ -143,7 +145,7 @@ def draw():
 
 # --- update ---
 def update():
-    global Current_Stage, spring_parts, spring_active, removed_spring, DEATH_COUNT
+    global Current_Stage, spring_parts, spring_active, removed_spring, DEATH_COUNT, spawned
 
     current_time = time.time()
     for timer in list(spring_timers):
@@ -203,7 +205,10 @@ def update():
     # ชนspike
     if player.collidelist(spike_parts) != -1:
         DEATH_COUNT += 1
-        player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+        if Current_Stage == 5:
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
+        else:
+            player.bottomleft = (0, 0)
         load_stage(Current_Stage)
 
     # ชนspring
@@ -215,7 +220,10 @@ def update():
     # ตกขอบ
     if player.y >= HEIGHT:
         DEATH_COUNT += 1
-        player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
+        if Current_Stage == 5:
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
+        else:
+            player.bottomleft = (0, 0)
         load_stage(Current_Stage)
 
     # เปลี่ยนด่าน
@@ -224,7 +232,10 @@ def update():
         if next_stage in Stage_List:
             load_stage(next_stage)
         else:
-            player.bottomleft = (0, 0)
+            if Current_Stage == 5:
+                player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
+            else:
+                player.bottomleft = (0, 0)
 
     # กับดัก
     if Current_Stage == 1:
@@ -285,8 +296,10 @@ def update():
         if player.x >= 896:
             for i in range(24,52):
                 fake_parts[i].y += 10
-    if Current_Stage == 4:
-        pass
+    if Current_Stage == 5:
+        if not spawned:
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
+            spawned = True
 
 # --- key events ---
 def on_key_down(key):
