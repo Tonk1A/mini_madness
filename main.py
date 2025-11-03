@@ -3,8 +3,7 @@ import os
 import re
 from collections import defaultdict
 from platformer import *
-from pgzero.clock import schedule_unique
-from pgzero.clock import clock
+import time
 
 TILE_SIZE = 32
 ROWS = 30
@@ -51,8 +50,6 @@ for filename in os.listdir(DATA_PATH):
         Spring_List[stage_num].append(full_path)
     elif "._SuperSpring" in filename:
         Super_spring_List[stage_num].append(full_path)
-        
-spring_active = False
 
 FakePart_List = dict(FakePart_List)
 Spike_List = dict(Spike_List)
@@ -61,6 +58,7 @@ Super_spring_List = dict(Super_spring_List)
 
 def load_stage(stage_num):
     global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage, spring_parts, super_spring_parts
+    global spring_timers, spring_active, remove_spring, removed_spring
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
@@ -69,6 +67,15 @@ def load_stage(stage_num):
     spike_parts = []
     spring_parts = []
     super_spring_parts = []
+    spring_timers = []
+    spring_active = False
+    removed_spring = False
+        
+    if Current_Stage == 3:
+        part_file = Spring_List[Current_Stage][1]
+        remove_spring = build(part_file, TILE_SIZE)
+        spring_parts.extend(remove_spring)
+   
     if stage_num in FakePart_List:
         for part_file in FakePart_List[stage_num]:
             fake_parts.extend(build(part_file, TILE_SIZE))
@@ -76,6 +83,13 @@ def load_stage(stage_num):
         for part_file in Spike_List[stage_num]:
             spike_parts.extend(build(part_file, TILE_SIZE))
     player.bottomleft = (0,0)
+
+# -- spawn spring
+def spawn_spring(file_path, lifetime=3):
+    new_springs = build(file_path, TILE_SIZE)
+    spring_parts.extend(new_springs)
+    spring_timers.append((time.time(), file_path, lifetime, new_springs))
+
 
 # --- sprite ---
 color_key = (0, 0, 0)
@@ -120,8 +134,17 @@ def draw():
 
 # --- update ---
 def update():
-    global Current_Stage, spring_parts
-
+    global Current_Stage, spring_parts, spring_active, removed_spring
+    
+    current_time = time.time()
+    for timer in list(spring_timers):
+        start, file_path, lifetime, parts = timer
+        if current_time - start >= lifetime:
+            for s in parts:
+                if s in spring_parts:
+                    spring_parts.remove(s)
+            spring_timers.remove(timer)
+    
     # การเคลื่อนไหวซ้าย-ขวา
     if keyboard.A and player.midleft[0] > 0:
         player.x -= player.velocity_x
@@ -222,21 +245,25 @@ def update():
             fake_parts[0].x = 720
             fake_parts[1].x = 880
     if Current_Stage == 3:
-        part_file = Spring_List[Current_Stage][1]
-        spring_parts.extend(build(part_file, TILE_SIZE))
-        fake_parts[16].x = 1000
+        fake_parts[15].x = 1000
         if player.y >= 352:
             for i in range(8):
                 fake_parts[i].x = 80
             part_file = Spring_List[Current_Stage][0]
             spring_parts.extend(build(part_file, TILE_SIZE))
-        if player.x >= 336:
-            fake_parts[16].x = 368
-            part_file = Spring_List[Current_Stage][2]
-            spring_parts.extend(build(part_file, TILE_SIZE))
-        if player.x >= 544:
+        if player.x >= 350:
+            fake_parts[15].x = 368
+            if not removed_spring:
+                part_file = Spring_List[Current_Stage][2]
+                spring_parts.extend(build(part_file, TILE_SIZE))
+                for s in remove_spring:
+                    if s in spring_parts:
+                        spring_parts.remove(s)
+                    removed_spring = True
+        if not spring_active and player.x >= 500:
             part_file = Spring_List[Current_Stage][3]
-            spring_parts.extend(build(part_file, TILE_SIZE))
+            spawn_spring(part_file, lifetime=3)
+            spring_active = True
         
 
 # --- key events ---
