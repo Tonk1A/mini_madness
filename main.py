@@ -13,7 +13,9 @@ WIDTH = TILE_SIZE * ROWS
 HEIGHT = TILE_SIZE * COLS
 TITLE = "mini madness"
 
-Current_Stage = 3
+DEATH_COUNT = 0
+
+Current_Stage = 1
 
 DATA_PATH = "data"
 
@@ -70,12 +72,12 @@ def load_stage(stage_num):
     spring_timers = []
     spring_active = False
     removed_spring = False
-        
+
     if Current_Stage == 3:
         part_file = Spring_List[Current_Stage][1]
         remove_spring = build(part_file, TILE_SIZE)
         spring_parts.extend(remove_spring)
-   
+
     if stage_num in FakePart_List:
         for part_file in FakePart_List[stage_num]:
             fake_parts.extend(build(part_file, TILE_SIZE))
@@ -102,12 +104,13 @@ player.bottomleft = (0, 0)
 player.velocity_x = 5
 player.velocity_y = 0
 player.jumping = False
-player.alive = True
 player.scale = 1.5
 gravity = 1
 jump_velocity = -14
 spring_velocity = -20
 Super_spring_velocity = -30
+Block_direction = 1
+Block_speed = 1
 
 # --- โหลด Current Stage ---
 load_stage(Current_Stage)
@@ -130,12 +133,18 @@ def draw():
         spring.draw()
     for Super_spring in super_spring_parts:
         Super_spring.draw()
+    screen.draw.text(
+    f"Deaths: {DEATH_COUNT}",
+    (WIDTH - 150, 10),
+    color="white",
+    fontsize=30,
+    )
     player.draw()
 
 # --- update ---
 def update():
-    global Current_Stage, spring_parts, spring_active, removed_spring
-    
+    global Current_Stage, spring_parts, spring_active, removed_spring, DEATH_COUNT
+
     current_time = time.time()
     for timer in list(spring_timers):
         start, file_path, lifetime, parts = timer
@@ -144,7 +153,7 @@ def update():
                 if s in spring_parts:
                     spring_parts.remove(s)
             spring_timers.remove(timer)
-    
+
     # การเคลื่อนไหวซ้าย-ขวา
     if keyboard.A and player.midleft[0] > 0:
         player.x -= player.velocity_x
@@ -193,6 +202,7 @@ def update():
 
     # ชนspike
     if player.collidelist(spike_parts) != -1:
+        DEATH_COUNT += 1
         player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
         load_stage(Current_Stage)
 
@@ -204,8 +214,8 @@ def update():
 
     # ตกขอบ
     if player.y >= HEIGHT:
+        DEATH_COUNT += 1
         player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 2)
-        player.alive = False
         load_stage(Current_Stage)
 
     # เปลี่ยนด่าน
@@ -215,7 +225,7 @@ def update():
             load_stage(next_stage)
         else:
             player.bottomleft = (0, 0)
-            
+
     # กับดัก
     if Current_Stage == 1:
         if player.x >= 185:
@@ -245,14 +255,14 @@ def update():
             fake_parts[0].x = 720
             fake_parts[1].x = 880
     if Current_Stage == 3:
-        fake_parts[15].x = 1000
+        fake_parts[22].x = 1000
         if player.y >= 352:
             for i in range(8):
                 fake_parts[i].x = 80
             part_file = Spring_List[Current_Stage][0]
             spring_parts.extend(build(part_file, TILE_SIZE))
         if player.x >= 350:
-            fake_parts[15].x = 368
+            fake_parts[22].x = 368
             if not removed_spring:
                 part_file = Spring_List[Current_Stage][2]
                 spring_parts.extend(build(part_file, TILE_SIZE))
@@ -260,11 +270,23 @@ def update():
                     if s in spring_parts:
                         spring_parts.remove(s)
                     removed_spring = True
+            for i in range(8,22):
+                fake_parts[i].x = 1000
         if not spring_active and player.x >= 500:
             part_file = Spring_List[Current_Stage][3]
             spawn_spring(part_file, lifetime=3)
             spring_active = True
-        
+        global Block_direction
+        fake_parts[23].x += Block_speed * Block_direction
+        if fake_parts[23].x >= 784:
+            Block_direction = -1
+        elif fake_parts[23].x <= 688:
+            Block_direction = 1
+        if player.x >= 896:
+            for i in range(24,52):
+                fake_parts[i].y += 10
+    if Current_Stage == 4:
+        pass
 
 # --- key events ---
 def on_key_down(key):
