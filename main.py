@@ -1,4 +1,5 @@
 import pgzrun
+from pgzero.clock import schedule_unique
 import os
 import re
 from collections import defaultdict
@@ -26,6 +27,7 @@ FakePart_List = defaultdict(list)
 Spike_List = defaultdict(list)
 Spring_List = defaultdict(list)
 Super_spring_List = defaultdict(list)
+Star_List = defaultdict(list)
 
 for filename in os.listdir(DATA_PATH):
     if not filename.endswith(".csv"):
@@ -52,15 +54,19 @@ for filename in os.listdir(DATA_PATH):
         Spring_List[stage_num].append(full_path)
     elif "._SuperSpring" in filename:
         Super_spring_List[stage_num].append(full_path)
+    elif "._Star" in filename:
+        Star_List[stage_num].append(full_path)
 
 FakePart_List = dict(FakePart_List)
 Spike_List = dict(Spike_List)
 Spring_List = dict(Spring_List)
 Super_spring_List = dict(Super_spring_List)
+Star_List = dict(Star_List)
 
 def load_stage(stage_num):
     global platforms, backgrounds, doors, fake_parts, spike_parts, Current_Stage, spring_parts, super_spring_parts
-    global spring_timers, spring_active, remove_spring, removed_spring, spawned
+    global spring_timers, spring_active, remove_spring, removed_spring, spawned, spike_active, spike_timers, Star_parts
+    global FakePart_Drop, Spike_Drop, spike_index, last_drop_time, active_spikes, drop_started, drop_start_time
     Current_Stage = stage_num
     platforms = build(Stage_List[stage_num], TILE_SIZE)
     backgrounds = build(Bg_List[stage_num], TILE_SIZE)
@@ -69,10 +75,20 @@ def load_stage(stage_num):
     spike_parts = []
     spring_parts = []
     super_spring_parts = []
+    Star_parts = []
     spring_timers = []
+    spike_timers = []
     spring_active = False
     removed_spring = False
+    spike_active = False
     spawned = False
+    FakePart_Drop = False
+    Spike_Drop = False
+    drop_started = False
+    drop_start_time = 0
+    spike_index = 30
+    active_spikes = []
+
     if Current_Stage == 3:
         part_file = Spring_List[Current_Stage][1]
         remove_spring = build(part_file, TILE_SIZE)
@@ -83,17 +99,20 @@ def load_stage(stage_num):
     if stage_num in Spike_List:
         for part_file in Spike_List[stage_num]:
             spike_parts.extend(build(part_file, TILE_SIZE))
+    if stage_num in Star_List:
+        for part_file in Star_List[stage_num]:
+            Star_parts.extend(build(part_file, TILE_SIZE))
     if Current_Stage == 5:
         player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
     else:
         player.bottomleft = (0, 0)
+    player.velocity_x = 5
 
 # -- spawn spring
 def spawn_spring(file_path, lifetime=3):
     new_springs = build(file_path, TILE_SIZE)
     spring_parts.extend(new_springs)
     spring_timers.append((time.time(), file_path, lifetime, new_springs))
-
 
 # --- sprite ---
 color_key = (0, 0, 0)
@@ -135,6 +154,8 @@ def draw():
         spring.draw()
     for Super_spring in super_spring_parts:
         Super_spring.draw()
+    for Star in Star_parts:
+        Star.draw()
     screen.draw.text(
     f"Deaths: {DEATH_COUNT}",
     (WIDTH - 150, 10),
@@ -145,8 +166,9 @@ def draw():
 
 # --- update ---
 def update():
-    global Current_Stage, spring_parts, spring_active, removed_spring, DEATH_COUNT, spawned
-
+    global Current_Stage, spring_parts, spring_active, removed_spring, DEATH_COUNT, spawned, spring_velocity
+    global spike_active, Star_parts, FakePart_Drop
+    global Spike_Drop, drop_started, drop_start_time, spike_index, active_spikes
     current_time = time.time()
     for timer in list(spring_timers):
         start, file_path, lifetime, parts = timer
@@ -205,10 +227,11 @@ def update():
     # ชนspike
     if player.collidelist(spike_parts) != -1:
         DEATH_COUNT += 1
-        if Current_Stage == 5:
-            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
-        else:
-            player.bottomleft = (0, 0)
+        load_stage(Current_Stage)
+
+    # ชนStar
+    if player.collidelist(Star_parts) != -1:
+        DEATH_COUNT += 1
         load_stage(Current_Stage)
 
     # ชนspring
@@ -220,10 +243,6 @@ def update():
     # ตกขอบ
     if player.y >= HEIGHT:
         DEATH_COUNT += 1
-        if Current_Stage == 5:
-            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
-        else:
-            player.bottomleft = (0, 0)
         load_stage(Current_Stage)
 
     # เปลี่ยนด่าน
@@ -231,14 +250,12 @@ def update():
         next_stage = Current_Stage + 1
         if next_stage in Stage_List:
             load_stage(next_stage)
-        else:
-            if Current_Stage == 5:
-                player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
-            else:
-                player.bottomleft = (0, 0)
 
     # กับดัก
     if Current_Stage == 1:
+        if not spawned:
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.3)
+            spawned = True
         if player.x >= 185:
             for i in range(15):
                 fake_parts[i].y += 10
@@ -249,6 +266,9 @@ def update():
             spike_parts[0].x = 400
             spike_parts[1].x = 432
     if Current_Stage == 2:
+        if not spawned:
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.4)
+            spawned = True
         if player.x >= 45 and player.y >= 480:
             part_file = Spring_List[Current_Stage][0]
             spring_parts.extend(build(part_file, TILE_SIZE))
@@ -266,6 +286,9 @@ def update():
             fake_parts[0].x = 720
             fake_parts[1].x = 880
     if Current_Stage == 3:
+        if not spawned:
+            player.bottomleft = (0, 95)
+            spawned = True
         fake_parts[22].x = 1000
         if player.y >= 352:
             for i in range(8):
@@ -297,10 +320,92 @@ def update():
             for i in range(24,52):
                 fake_parts[i].y += 10
     if Current_Stage == 5:
+        spike_parts[9].x = 1000
+        spike_parts[10].x = 1000
+        part_file = Spring_List[Current_Stage][1]
+        spring_parts.extend(build(part_file, TILE_SIZE))
+        part_file = Spring_List[Current_Stage][2]
+        spring_parts.extend(build(part_file, TILE_SIZE))
+        spring_parts.extend(build(part_file, TILE_SIZE))
+        part_file = Super_spring_List[Current_Stage][0]
+        super_spring_parts.extend(build(part_file, TILE_SIZE))
+        spring_velocity = -15
         if not spawned:
-            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.25)
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.7)
             spawned = True
-
+        if player.y > 384:
+            spike_parts[3].x = 1000
+            part_file = Spring_List[Current_Stage][0]
+            spring_parts.extend(build(part_file, TILE_SIZE))
+        if player.y > 480:
+            spring_velocity = -20
+            spike_parts[9].x = 368
+            spike_parts[10].x = 400
+        # for i in range(11,39):
+        # if player.x < 704 and player.y < 160:
+        #     spike_parts[30].y += 5
+        # if player.x < 672 and player.y < 160:
+        #     spike_parts[29].y += 5
+        # if player.x < 640 and player.y < 160:
+        #     spike_parts[28].y += 5
+        if player.x < 608 and player.y < 192:
+            Spike_Drop = True
+            FakePart_Drop = True
+        # if player.x < 576 and player.y < 192:
+        #     spike_parts[26].y += 5
+        # if player.x < 544 and player.y < 192:
+        #     spike_parts[25].y += 5
+        # if player.x < 512 and player.y < 192:
+        #     spike_parts[24].y += 5
+        # if player.x < 480 and player.y < 192:
+        #     spike_parts[23].y += 5
+        # if player.x < 448 and player.y < 192:
+        #     spike_parts[22].y += 5
+        # if player.x < 416 and player.y < 192:
+        #     FakePart_Drop = True
+        # if player.x < 384 and player.y < 192:
+        #     spike_parts[20].y += 5
+        # if player.x < 352 and player.y < 192:
+        #     spike_parts[19].y += 5
+        # if player.x < 320 and player.y < 192:
+        #     spike_parts[18].y += 5
+        # if player.x < 288 and player.y < 192:
+        #     spike_parts[17].y += 5
+        # if player.x < 256 and player.y < 192:
+        #     spike_parts[16].y += 5
+        # if player.x < 224 and player.y < 192:
+        #     spike_parts[15].y += 5
+        # if player.x < 192 and player.y < 192:
+        #     spike_parts[14].y += 5
+        # if player.x < 160 and player.y < 192:
+        #     spike_parts[13].y += 5
+        # if player.x < 128 and player.y < 192:
+        #     spike_parts[12].y += 5
+        # if player.x < 96 and player.y < 192:
+        #     spike_parts[11].y += 5
+        if FakePart_Drop:
+            if player.x < 416:
+                for i in range(6):
+                    fake_parts[i].y += 10
+            # spike_parts[21].y += 5
+        if Spike_Drop and not drop_started:
+            drop_started = True
+            drop_start_time = current_time
+            spike_index = 28
+            active_spikes = []
+        if drop_started:
+            if spike_index >= 12 and current_time - drop_start_time >= (28 - spike_index) * 0.13:
+                active_spikes.append(spike_index)
+                spike_index -= 1
+            for i in active_spikes:
+                if i == 20 or i == 21:
+                    continue
+                spike_parts[i].y += 5
+                if spike_parts[i].y >= 1000:
+                    spike_parts[i].y = 1000
+            if spike_index < 12 and all(spike_parts[i].y >= 1000 for i in active_spikes):
+                drop_started = False
+                Spike_Drop = False
 # --- key events ---
 def on_key_down(key):
     if key == keys.SPACE and not player.jumping:
