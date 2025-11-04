@@ -508,7 +508,10 @@ def update(dt):
         if player.x >= 896:
             for i in range(24,52):
                 fake_parts[i].y += 10
-
+    if Current_Stage == 4:
+        if not spawned:
+            player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.8)
+            spawned = True
     if Current_Stage == 5:
         if not spawned:
             player.bottomleft = (0, (HEIGHT - TILE_SIZE) / 1.7)
@@ -559,7 +562,7 @@ def update(dt):
             spike_index = 28
             active_spikes = []
         if drop_started:
-            if spike_index >= 12 and current_time - drop_start_time >= (28 - spike_index) * 0.13:
+            if spike_index >= 12 and current_time - drop_start_time >= (28 - spike_index) * 0.09:
                 active_spikes.append(spike_index)
                 spike_index -= 1
             for i in active_spikes:
