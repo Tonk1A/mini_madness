@@ -241,7 +241,7 @@ def draw():
             "THANK YOU FOR PLAYING!",
             "",
             "Mini Madness",
-            "Created by: Kuy",
+            "Created by: YAMDUEK CREW",
             "",
             "Special Thanks:",
             "- Everyone who played the game",
@@ -391,9 +391,10 @@ def update(dt):
         player.velocity_y = 0
 
     # ชนspike
-    # if player.collidelist(spike_parts) != -1:
-    #     DEATH_COUNT += 1
-    #     load_stage(Current_Stage)
+    if player.collidelist(spike_parts) != -1:
+        sounds.explosion.play()
+        DEATH_COUNT += 1
+        load_stage(Current_Stage)
 
     # ชนStar
     if player.collidelist(Star_parts) != -1:
