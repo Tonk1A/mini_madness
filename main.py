@@ -31,6 +31,8 @@ target_scale = 1.0
 scale_speed = 10
 click_anim = False
 click_timer = 0
+walk_sound_timer = 0
+wals_sound_delay = 0.3
 
 Current_Stage = 1
 
@@ -161,6 +163,7 @@ def on_mouse_up(pos):
     global GAME_STATE
     if GAME_STATE == "menu" and start_button.collidepoint(pos):
         GAME_STATE = "playing"
+        music.play("rage!_loop.ogg")
 
 # --- sprite ---
 color_key = (0, 0, 0)
@@ -183,6 +186,7 @@ Block_speed = 1
 
 # --- โหลด Current Stage ---
 load_stage(Current_Stage)
+music.play("きらめく日々.ogg")
 
 def draw_ending():
     screen.clear()
@@ -310,6 +314,7 @@ def update(dt):
             CREDIT_SCROLL_Y = HEIGHT
             GAME_STATE = "menu"
             Current_Stage = 1
+            music.play("きらめく日々.ogg")
         return
     
     current_time = time.time()
@@ -322,8 +327,16 @@ def update(dt):
             spring_timers.remove(timer)
 
     # การเคลื่อนไหวซ้าย-ขวา
+    global walk_sound_timer
+    
+    start_scale += (target_scale - start_scale) * dt * scale_speed
+    walk_sound_timer += dt
+    
     if keyboard.A and player.midleft[0] > 0:
         player.x -= player.velocity_x
+        if walk_sound_timer > wals_sound_delay:
+            sounds.walk.play()
+            walk_sound_timer = 0
         # set sprite only when it actually changes
         if player.sprite != knight_walk:
             player.sprite = knight_walk
@@ -336,6 +349,9 @@ def update(dt):
             player.x = obj.x + (obj.width / 2 + player.width / 2)
     elif keyboard.D and player.midright[0] < WIDTH:
         player.x += player.velocity_x
+        if walk_sound_timer > wals_sound_delay:
+            sounds.walk.play()
+            walk_sound_timer = 0
         if player.sprite != knight_walk:
             player.sprite = knight_walk
         player.flip_h = False
@@ -381,17 +397,21 @@ def update(dt):
 
     # ชนStar
     if player.collidelist(Star_parts) != -1:
+        sounds.explosion.play()
         DEATH_COUNT += 1
         load_stage(Current_Stage)
 
     # ชนspring
     if player.collidelist(spring_parts) != -1:
+        sounds.bounce.play()
         player.velocity_y = spring_velocity
     if player.collidelist(super_spring_parts) != -1:
+        sounds.bounce.play()
         player.velocity_y = Super_spring_velocity
 
     # ตกขอบ
     if player.y >= HEIGHT:
+        sounds.explosion.play()
         DEATH_COUNT += 1
         load_stage(Current_Stage)
 
@@ -402,6 +422,7 @@ def update(dt):
             load_stage(next_stage)
         else:
             GAME_STATE = "ending"
+            music.play("glide!_nointro.ogg")
             CREDIT_SCROLL_Y = HEIGHT
 
     # กับดัก
@@ -553,6 +574,7 @@ def update(dt):
 # --- key events ---
 def on_key_down(key):
     if key == keys.SPACE and not player.jumping:
+        sounds.jump.play()
         player.velocity_y = jump_velocity
         player.jumping = True
 
